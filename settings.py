@@ -7,5 +7,4 @@ DATABASE_NAME   = "db.sqlite3"
 
 
 INSTALLED_APPS = (
-    "alpha",
-    "bravo")
+    "person")
