@@ -9,3 +9,7 @@ class Person(models.Model):
     name   = models.CharField("First Name", max_length=30)
     height = models.IntegerField("Height (cm)", null=True, blank=True)
     weight = models.IntegerField("Weight (kg)", null=True, blank=True)
+
+
+import dbus_signals
+dbus_signals.connect(Person)
