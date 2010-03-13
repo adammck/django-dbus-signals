@@ -12,4 +12,4 @@ DBUS_PATH      = "/com/adammck/django"
 
 INSTALLED_APPS = (
     "dbus_signals",
-    "person")
+    "dbus_example")
