@@ -8,32 +8,37 @@ from django.db.models import signals
 from django.conf import settings
 
 
-INTERFACE = settings.DBUS_INTERFACE
-PATH = settings.DBUS_PATH
-
-
-class ModelService(dbus.service.Object):
+class ServiceBase(dbus.service.Object):
     def __init__(self):
-        bus_name = dbus.service.BusName(INTERFACE, bus=dbus.SessionBus())
-        dbus.service.Object.__init__(self, bus_name, PATH)
-   
-         
-    def connect(self, model):
-        signals.post_save.connect(self._post_save, sender=model)
-        signals.post_delete.connect(self._post_delete, sender=model)
+        bus_name = dbus.service.BusName(self.interface, bus=dbus.SessionBus())
+        dbus.service.Object.__init__(self, bus_name, self.path)
 
 
-    def _post_save(self, sender, instance, **kwargs):
-        self.saved(sender.__name__.lower(), instance.pk)
+def connect(model):
+    name      = model.__name__
+    cls_name  = "%sService" % (name)
+    interface = "%s.%s"     % (settings.DBUS_INTERFACE, name)
+    path      = "%s/%s"     % (settings.DBUS_PATH, name)
 
-    @dbus.service.signal(INTERFACE, signature="si")
-    def saved(self, model_name, pk):
-        pass
+    # we can't use lambda functions inline, because the python-dbus api
+    # uses the __name__ of the method as the dbus signal name. what.
+    def saved(self, pk): return None
+    def deleted(self, pk): return None
 
+    # generate the class
+    cls = type(cls_name, (dbus.service.Object,), {
+        "saved":     saved,
+        "deleted":   deleted,
+        "interface": interface,
+        "path":      path
+    })
 
-    def _post_delete(self, sender, instance, **kwargs):
-        self.deleted(sender.__name__.lower(), instance.pk)
+    # decorate the signal methods, to turn them into dbus signal emitters
+    # this seems wrong, but the python-dbus api doesn't appear to provide
+    # any way to do this without using the decorator.
+    cls.saved   = dbus.service.signal(interface, signature="i")(cls.saved)
+    cls.deleted = dbus.service.signal(interface, signature="i")(cls.deleted)
 
-    @dbus.service.signal(INTERFACE, signature="si")
-    def deleted(self, model_name, pk):
-        pass
+    # hook up the django signal handlers, to fire the dbus signals
+    signals.post_save.connect(lambda instance, sender, **kwargs: cls.saved(inst.pk))
+    signals.post_save.connect(lambda instance, sender, **kwargs: cls.deleted(inst.pk))

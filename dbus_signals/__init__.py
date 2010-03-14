@@ -3,12 +3,9 @@
 
 
 from dbus.mainloop.glib import DBusGMainLoop
-from . import services
-
-
 DBusGMainLoop(set_as_default=True)
-_service = services.ModelService()
 
 
 def connect(model):
-    _service.connect(model)
+    from . import services
+    services.connect(model)
