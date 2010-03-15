@@ -43,5 +43,5 @@ def connect(model):
     service = cls()
 
     # hook up the django signal handlers, to fire the dbus signals
-    signals.post_save.connect(lambda instance, sender, **kwargs: service.saved(inst.pk), sender=model)
-    signals.post_delete.connect(lambda instance, sender, **kwargs: service.deleted(inst.pk), sender=model)
+    signals.post_save.connect(lambda **kwargs: service.saved(kwargs["instance"].pk), weak=False, sender=model)
+    signals.post_delete.connect(lambda **kwargs: service.deleted(kwargs["instance"].pk), weak=False, sender=model)
