@@ -26,7 +26,7 @@ def connect(model):
     def deleted(self, pk): return None
 
     # generate the class
-    cls = type(cls_name, (dbus.service.Object,), {
+    cls = type(cls_name, (ServiceBase,), {
         "saved":     saved,
         "deleted":   deleted,
         "interface": interface,
@@ -39,6 +39,9 @@ def connect(model):
     cls.saved   = dbus.service.signal(interface, signature="i")(cls.saved)
     cls.deleted = dbus.service.signal(interface, signature="i")(cls.deleted)
 
+    # we're done building the class, so instantiate it once.
+    service = cls()
+
     # hook up the django signal handlers, to fire the dbus signals
-    signals.post_save.connect(lambda instance, sender, **kwargs: cls.saved(inst.pk))
-    signals.post_save.connect(lambda instance, sender, **kwargs: cls.deleted(inst.pk))
+    signals.post_save.connect(lambda instance, sender, **kwargs: service.saved(inst.pk), sender=model)
+    signals.post_delete.connect(lambda instance, sender, **kwargs: service.deleted(inst.pk), sender=model)
